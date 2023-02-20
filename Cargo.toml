@@ -1,8 +1,9 @@
 [package]
-name = "factorio-loader"
+name = "lua2json"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "1"
 nom = "7"
+serde_json = "1"

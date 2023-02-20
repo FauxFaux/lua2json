@@ -7,7 +7,7 @@ use nom::multi::separated_list0;
 use nom::sequence::{delimited, pair, terminated, tuple};
 use nom::IResult;
 
-type Table = Vec<(Option<String>, Value)>;
+pub type Table = Vec<(Option<String>, Value)>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -115,7 +115,7 @@ fn value(input: &str) -> IResult<&str, Value> {
 }
 
 pub fn parse(s: &str) -> Result<Table> {
-    match value(s).expect("TODO: parse errors") {
+    match value(s).map_err(|e| anyhow!("{e:?}"))? {
         ("", Value::Object(t)) => Ok(t),
         (rest, Value::Object(_)) => bail!("unexpected trailing data: {rest:?})"),
         _ => bail!("unexpected non-object"),
@@ -125,6 +125,7 @@ pub fn parse(s: &str) -> Result<Table> {
 #[cfg(test)]
 mod tests {
     use crate::parse::{parse, string, Table, Value};
+    use anyhow::Result;
 
     #[test]
     fn simple() {
@@ -162,6 +163,14 @@ mod tests {
             )],
             parse("{{a=5}}").unwrap()
         );
+
+        assert_eq!(
+            vec![(
+                None,
+                Value::Object(vec![(Some("a".to_string()), Value::Float(5.))])
+            )],
+            parse("{a_b=5}").unwrap()
+        );
     }
 
     #[test]
@@ -174,5 +183,15 @@ mod tests {
             ("", Value::String("he\"llo".to_string())),
             string("\"he\\\"llo\"").unwrap()
         );
+
+
     }
+    //
+    // #[test]
+    // fn serpent() -> Result<()> {
+    //     parse(
+    //         r#"{network_id = 255, route = "yello"}"#,
+    //     )?;
+    //     Ok(())
+    // }
 }
