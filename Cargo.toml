@@ -1,9 +1,17 @@
 [package]
+authors = ["Chris West (Faux) <git@goeswhere.com>"]
 name = "lua2json"
 version = "0.1.0"
+
+description = "A Lua parser that outputs JSON"
+repository = "https://github.com/FauxFaux/lua2json"
+readme = "README.md"
+categories = ["command-line-utilities", "development-tools", "parsing"]
+license = "MIT OR Apache-2.0"
+
 edition = "2021"
 
 [dependencies]
 anyhow = "1"
 nom = "7"
-serde_json = "1"
+serde_json = {version = "1", features = ["preserve_order"]}
