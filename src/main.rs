@@ -2,9 +2,8 @@ mod parse;
 
 use std::fs;
 use std::io::{BufRead, Write};
-use std::path::Path;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use serde_json as json;
 use serde_json::json;
 

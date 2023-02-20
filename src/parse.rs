@@ -1,7 +1,8 @@
 use anyhow::{anyhow, bail, Result};
 use nom::branch::alt;
-use nom::bytes::complete::{escaped_transform, tag};
+use nom::bytes::complete::{escaped_transform, tag, take_while1};
 use nom::character::complete::{alpha1, char, digit1, multispace0, none_of};
+use nom::character::is_alphabetic;
 use nom::combinator::{map, opt, recognize};
 use nom::multi::separated_list0;
 use nom::sequence::{delimited, pair, terminated, tuple};
@@ -63,29 +64,45 @@ fn num(input: &str) -> IResult<&str, Value> {
     Ok((rest, Value::Float(v.parse::<f64>().expect("close enough"))))
 }
 
-fn string(input: &str) -> IResult<&str, Value> {
-    map(
-        delimited(
-            char('"'),
-            escaped_transform(
-                none_of("\\\n\""),
-                '\\',
-                alt((nom::combinator::value("\"", tag("\"")),)),
-            ),
-            char('"'),
+fn quoted_string(input: &str) -> IResult<&str, String> {
+    delimited(
+        char('"'),
+        escaped_transform(
+            none_of("\\\n\""),
+            '\\',
+            alt((nom::combinator::value("\"", tag("\"")),)),
         ),
-        |v: String| Value::String(v),
+        char('"'),
     )(input)
+}
+
+fn string(input: &str) -> IResult<&str, Value> {
+    map(quoted_string, |v: String| Value::String(v))(input)
 }
 
 fn atom(input: &str) -> IResult<&str, Value> {
     alt((num, string))(input)
 }
 
-fn maybe_named_value(input: &str) -> IResult<&str, (Option<&str>, Value)> {
+fn plain_value_name(input: &str) -> IResult<&str, &str> {
+    take_while1(|c: char| c.is_ascii_alphabetic() || '_' == c)(input)
+}
+
+fn bracketed_value_name(input: &str) -> IResult<&str, String> {
+    delimited(char('['), quoted_string, char(']'))(input)
+}
+
+fn value_name(input: &str) -> IResult<&str, String> {
+    alt((
+        map(plain_value_name, |s| s.to_string()),
+        bracketed_value_name,
+    ))(input)
+}
+
+fn maybe_named_value(input: &str) -> IResult<&str, (Option<String>, Value)> {
     pair(
         opt(terminated(
-            delimited(ws, alpha1, ws),
+            delimited(ws, value_name, ws),
             delimited(ws, char('='), ws),
         )),
         delimited(ws, value, ws),
@@ -165,11 +182,13 @@ mod tests {
         );
 
         assert_eq!(
-            vec![(
-                None,
-                Value::Object(vec![(Some("a".to_string()), Value::Float(5.))])
-            )],
+            vec![(Some("a_b".to_string()), Value::Float(5.))],
             parse("{a_b=5}").unwrap()
+        );
+
+        assert_eq!(
+            vec![(Some("a".to_string()), Value::Float(5.))],
+            parse(r#"{["a"]=5}"#).unwrap()
         );
     }
 
@@ -183,8 +202,6 @@ mod tests {
             ("", Value::String("he\"llo".to_string())),
             string("\"he\\\"llo\"").unwrap()
         );
-
-
     }
     //
     // #[test]
