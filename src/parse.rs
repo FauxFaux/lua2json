@@ -15,6 +15,7 @@ pub enum Value {
     Object(Table),
     String(String),
     Float(f64),
+    Bool(bool),
 }
 
 impl Value {
@@ -80,8 +81,15 @@ fn string(input: &str) -> IResult<&str, Value> {
     map(quoted_string, |v: String| Value::String(v))(input)
 }
 
+fn bool(input: &str) -> IResult<&str, Value> {
+    alt((
+        map(tag("true"), |_| Value::Bool(true)),
+        map(tag("false"), |_| Value::Bool(false)),
+    ))(input)
+}
+
 fn atom(input: &str) -> IResult<&str, Value> {
-    alt((num, string))(input)
+    alt((num, string, bool))(input)
 }
 
 fn plain_value_name(input: &str) -> IResult<&str, &str> {
@@ -190,6 +198,10 @@ mod tests {
             vec![(Some("a".to_string()), Value::Float(5.))],
             parse(r#"{["a"]=5}"#).unwrap()
         );
+        assert_eq!(
+            vec![(Some("a".to_string()), Value::Bool(true))],
+            parse(r#"{["a"]=true}"#).unwrap()
+        );
     }
 
     #[test]
@@ -203,12 +215,4 @@ mod tests {
             string("\"he\\\"llo\"").unwrap()
         );
     }
-    //
-    // #[test]
-    // fn serpent() -> Result<()> {
-    //     parse(
-    //         r#"{network_id = 255, route = "yello"}"#,
-    //     )?;
-    //     Ok(())
-    // }
 }

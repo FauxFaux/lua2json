@@ -50,5 +50,6 @@ fn val_to_json(v: &parse::Value) -> Result<json::Value> {
         parse::Value::Float(f) => json!(*f),
         parse::Value::String(s) => json::Value::String(s.clone()),
         parse::Value::Object(t) => to_json(&t)?,
+        parse::Value::Bool(b) => json!(*b),
     })
 }
