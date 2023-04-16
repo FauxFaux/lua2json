@@ -121,7 +121,10 @@ fn table(input: &str) -> IResult<&str, Value> {
     map(
         delimited(
             delimited(ws, char('{'), ws),
-            separated_list0(delimited(ws, char(','), ws), maybe_named_value),
+            terminated(
+                separated_list0(delimited(ws, char(','), ws), maybe_named_value),
+                opt(char(',')),
+            ),
             delimited(ws, char('}'), ws),
         ),
         |pairs| {
@@ -179,6 +182,14 @@ mod tests {
                 (Some("b".to_string()), Value::Float(6.))
             ],
             parse("{a=5,b=6}").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                (Some("a".to_string()), Value::Float(5.)),
+                (Some("b".to_string()), Value::Float(6.))
+            ],
+            parse("{a=5,b=6 ,}").unwrap()
         );
 
         assert_eq!(
